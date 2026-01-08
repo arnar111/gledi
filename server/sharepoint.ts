@@ -1,39 +1,48 @@
 import { Client } from '@microsoft/microsoft-graph-client';
 
-let connectionSettings: any;
+let cachedToken: { token: string; expiresAt: number } | null = null;
 
-async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
-    return connectionSettings.settings.access_token;
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now()) {
+    return cachedToken.token;
   }
+
+  const tenantId = process.env.AZURE_TENANT_ID;
+  const clientId = process.env.AZURE_CLIENT_ID;
+  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    throw new Error('Azure credentials not configured. Please set AZURE_TENANT_ID, AZURE_CLIENT_ID, and AZURE_CLIENT_SECRET.');
+  }
+
+  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
   
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
+  const params = new URLSearchParams();
+  params.append('client_id', clientId);
+  params.append('client_secret', clientSecret);
+  params.append('scope', 'https://graph.microsoft.com/.default');
+  params.append('grant_type', 'client_credentials');
 
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+  const response = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Token fetch error:', error);
+    throw new Error('Failed to get Azure access token');
   }
 
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sharepoint',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+  const data = await response.json();
+  
+  cachedToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  };
 
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
-
-  if (!connectionSettings || !accessToken) {
-    throw new Error('SharePoint not connected');
-  }
-  return accessToken;
+  return cachedToken.token;
 }
 
 export async function getSharePointClient() {
@@ -60,50 +69,74 @@ export async function fetchLoopContent(loopUrl: string): Promise<string> {
     } catch (e) {
     }
     
-    console.log('Processing Loop URL...');
+    console.log('Processing Loop URL with custom Azure credentials...');
     
     const contentStorageMatch = fullyDecodedUrl.match(/CSP_([a-f0-9-]+)/i);
     const loopFileMatch = fullyDecodedUrl.match(/([^\/]+\.loop)/i);
+    const sharepointDomain = fullyDecodedUrl.match(/https?:\/\/([^\/]+\.sharepoint\.com)/)?.[1];
     
-    if (contentStorageMatch && loopFileMatch) {
-      const siteId = contentStorageMatch[1];
-      const fileName = loopFileMatch[1];
-      
-      console.log(`Found CSP site ID: ${siteId}, file: ${fileName}`);
+    if (contentStorageMatch && sharepointDomain) {
+      const cspId = contentStorageMatch[1];
+      console.log(`Found CSP ID: ${cspId}, Domain: ${sharepointDomain}`);
       
       try {
-        const sharepointDomain = fullyDecodedUrl.match(/https?:\/\/([^\/]+\.sharepoint\.com)/)?.[1];
-        if (sharepointDomain) {
-          const siteResponse = await client.api(`/sites/${sharepointDomain}:/contentstorage/CSP_${siteId}`).get();
-          console.log('Site found:', siteResponse.id);
-          
-          const drivesResponse = await client.api(`/sites/${siteResponse.id}/drives`).get();
-          if (drivesResponse.value?.length > 0) {
-            for (const drive of drivesResponse.value) {
-              try {
-                const searchResults = await client.api(`/drives/${drive.id}/root/search(q='${fileName.replace('.loop', '')}')`).get();
+        const sitePath = `/contentstorage/CSP_${cspId}`;
+        const siteResponse = await client.api(`/sites/${sharepointDomain}:${sitePath}`).get();
+        console.log('Site found:', siteResponse.displayName || siteResponse.id);
+        
+        const drivesResponse = await client.api(`/sites/${siteResponse.id}/drives`).get();
+        
+        if (drivesResponse.value?.length > 0) {
+          for (const drive of drivesResponse.value) {
+            try {
+              const items = await client.api(`/drives/${drive.id}/root/children`).get();
+              
+              for (const item of items.value || []) {
+                if (item.name?.endsWith('.loop')) {
+                  console.log('Found Loop file:', item.name);
+                  
+                  try {
+                    const content = await client.api(`/drives/${drive.id}/items/${item.id}/content?format=html`).get();
+                    if (typeof content === 'string') {
+                      return stripHtmlTags(content);
+                    }
+                  } catch (contentErr: any) {
+                    console.log('HTML format not available, trying raw content');
+                    const rawContent = await client.api(`/drives/${drive.id}/items/${item.id}/content`).get();
+                    if (typeof rawContent === 'string') {
+                      return stripHtmlTags(rawContent);
+                    }
+                    if (rawContent && typeof rawContent === 'object') {
+                      return JSON.stringify(rawContent, null, 2);
+                    }
+                  }
+                }
+              }
+              
+              if (loopFileMatch) {
+                const searchQuery = loopFileMatch[1].replace('.loop', '');
+                const searchResults = await client.api(`/drives/${drive.id}/root/search(q='${searchQuery}')`).get();
                 
                 if (searchResults.value?.length > 0) {
                   const item = searchResults.value[0];
-                  console.log('Found item:', item.name);
+                  console.log('Found via search:', item.name);
                   
                   const content = await client.api(`/drives/${drive.id}/items/${item.id}/content`).get();
-                  
                   if (typeof content === 'string') {
                     return stripHtmlTags(content);
                   }
-                  if (content && typeof content === 'object') {
-                    return JSON.stringify(content, null, 2);
-                  }
                 }
-              } catch (searchErr: any) {
-                console.log(`Search in drive ${drive.id} failed:`, searchErr.message);
               }
+            } catch (driveErr: any) {
+              console.log(`Drive ${drive.id} error:`, driveErr.message);
             }
           }
         }
       } catch (siteErr: any) {
         console.log('Site access error:', siteErr.message);
+        if (siteErr.message?.includes('Access denied') || siteErr.statusCode === 403) {
+          return "Access denied. Please ensure you clicked 'Grant admin consent' for Sites.Read.All and Files.Read.All permissions in your Azure app.";
+        }
       }
     }
     
@@ -121,17 +154,17 @@ export async function fetchLoopContent(loopUrl: string): Promise<string> {
         if (typeof content === 'string') {
           return stripHtmlTags(content);
         }
-        if (content && typeof content === 'object') {
-          return JSON.stringify(content, null, 2);
-        }
       } catch (shareErr: any) {
         console.log('Sharing URL access error:', shareErr.message);
       }
     }
     
-    return "Could not fetch Loop content. The SharePoint connector may not have access to Loop's content storage. Please ensure the Loop document is shared with your organization.";
+    return "Could not fetch Loop content. Please verify: 1) Admin consent was granted for the Azure app permissions, 2) The Loop URL is correct and accessible.";
   } catch (error: any) {
     console.error('Error fetching Loop content:', error);
+    if (error.message?.includes('credentials not configured')) {
+      return error.message;
+    }
     throw new Error(`Failed to fetch Loop content: ${error.message}`);
   }
 }
