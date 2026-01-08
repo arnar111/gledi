@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, ExternalLink, Calendar, FileText, Video } from "lucide-react";
 
 export default function MeetingsPage() {
   const { data: meetings, isLoading } = useQuery({
@@ -11,56 +12,108 @@ export default function MeetingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full" data-testid="loading-meetings">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Meetings</h2>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Schedule Meeting
+    <div className="space-y-8" data-testid="page-meetings">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent" data-testid="text-meetings-title">
+            Committee Meetings
+          </h2>
+          <p className="text-muted-foreground mt-1" data-testid="text-meetings-subtitle">Schedule and track your planning sessions</p>
+        </div>
+        <Button className="gap-2" data-testid="button-schedule-meeting">
+          <Plus className="h-4 w-4" /> Schedule Meeting
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="space-y-4" data-testid="list-meetings">
         {meetings?.map((meeting: any) => (
-          <Card key={meeting.id} className="hover-elevate border-none shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold">{meeting.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(meeting.date).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="capitalize px-3 py-1 rounded-full text-xs font-bold bg-secondary/10 text-secondary">
-                  {meeting.status}
-                </span>
-                {meeting.loopLink && (
-                  <Button variant="outline" size="sm" className="rounded-full" asChild>
-                    <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" /> Loop Workspace
-                    </a>
-                  </Button>
-                )}
+          <Card 
+            key={meeting.id} 
+            className="hover-elevate overflow-visible"
+            data-testid={`card-meeting-${meeting.id}`}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 shrink-0" data-testid={`icon-meeting-${meeting.id}`}>
+                    <Video className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold" data-testid={`text-meeting-title-${meeting.id}`}>{meeting.title}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground" data-testid={`text-meeting-date-${meeting.id}`}>
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {new Date(meeting.date).toLocaleDateString(undefined, { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Badge 
+                    variant={meeting.status === 'scheduled' ? 'secondary' : 'default'}
+                    data-testid={`badge-meeting-status-${meeting.id}`}
+                  >
+                    {meeting.status}
+                  </Badge>
+                  {meeting.loopLink && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2" 
+                      asChild
+                      data-testid={`button-loop-${meeting.id}`}
+                    >
+                      <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" /> 
+                        Open in Loop
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
-              {meeting.minutes && (
-                <div className="relative overflow-hidden rounded-xl bg-muted/30 p-4">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-secondary/30" />
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Minutes Summary</p>
-                  <p className="text-sm leading-relaxed text-foreground/80">{meeting.minutes}</p>
+            
+            {meeting.minutes && (
+              <CardContent>
+                <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary" data-testid={`container-minutes-${meeting.id}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground" data-testid={`text-minutes-label-${meeting.id}`}>Meeting Notes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-minutes-content-${meeting.id}`}>
+                    {meeting.minutes}
+                  </p>
                 </div>
-              )}
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         ))}
       </div>
+
+      {meetings?.length === 0 && (
+        <div className="text-center py-12" data-testid="empty-meetings">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+            <Calendar className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold" data-testid="text-empty-meetings-title">No meetings scheduled</h3>
+          <p className="text-muted-foreground mt-1" data-testid="text-empty-meetings-message">Schedule your first committee meeting</p>
+        </div>
+      )}
     </div>
   );
 }
