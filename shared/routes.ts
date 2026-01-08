@@ -30,7 +30,17 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/events',
-      input: insertEventSchema,
+      input: z.object({
+        title: z.string(),
+        description: z.string().optional().nullable(),
+        date: z.string(),
+        location: z.string().optional().nullable(),
+        status: z.enum(['planning', 'confirmed', 'completed', 'cancelled']).optional(),
+        budget: z.number().optional().nullable(),
+        maxAttendees: z.number().optional().nullable(),
+        posterUrl: z.string().optional().nullable(),
+        slackMessageTs: z.string().optional().nullable(),
+      }),
       responses: {
         201: z.custom<typeof events.$inferSelect>(),
         400: errorSchemas.validation,
@@ -66,7 +76,15 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/meetings',
-      input: insertMeetingSchema,
+      input: z.object({
+        title: z.string(),
+        date: z.string(),
+        loopLink: z.string().optional().nullable(),
+        minutes: z.string().optional().nullable(),
+        status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+        chairpersonId: z.number().optional().nullable(),
+        secretaryId: z.number().optional().nullable(),
+      }),
       responses: {
         201: z.custom<typeof meetings.$inferSelect>(),
       },
