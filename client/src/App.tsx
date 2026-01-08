@@ -10,6 +10,7 @@ import NewEventPage from "@/pages/new-event";
 import MeetingsPage from "@/pages/meetings";
 import NewMeetingPage from "@/pages/new-meeting";
 import HandbookPage from "@/pages/handbook";
+import StaffPage from "@/pages/staff";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/meetings" component={MeetingsPage} />
       <Route path="/meetings/new" component={NewMeetingPage} />
       <Route path="/handbook" component={HandbookPage} />
+      <Route path="/staff" component={StaffPage} />
       <Route component={NotFound} />
     </Switch>
   )

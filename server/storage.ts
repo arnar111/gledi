@@ -1,12 +1,14 @@
 import { db } from "./db";
 import {
-  users, events, meetings, tasks, eventAttendees,
-  type User, type Event, type Meeting, type Task,
+  users, events, meetings, tasks, eventAttendees, staff, smsNotifications,
+  type User, type Event, type Meeting, type Task, type Staff, type SmsNotification,
   type CreateEventRequest, type UpdateEventRequest,
   type CreateMeetingRequest, type UpdateMeetingRequest,
   type CreateTaskRequest, type UpdateTaskRequest,
+  type CreateStaffRequest, type UpdateStaffRequest,
+  type CreateSmsNotificationRequest,
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -28,6 +30,18 @@ export interface IStorage {
   // Tasks
   getTasks(): Promise<Task[]>;
   updateTask(id: number, updates: UpdateTaskRequest): Promise<Task>;
+
+  // Staff
+  getStaff(): Promise<Staff[]>;
+  getActiveStaff(): Promise<Staff[]>;
+  createStaff(staffMember: CreateStaffRequest): Promise<Staff>;
+  updateStaff(id: number, updates: UpdateStaffRequest): Promise<Staff>;
+  deleteStaff(id: number): Promise<void>;
+
+  // SMS Notifications
+  getSmsNotifications(eventId: number): Promise<SmsNotification[]>;
+  createSmsNotifications(notifications: CreateSmsNotificationRequest[]): Promise<SmsNotification[]>;
+  updateSmsNotification(id: number, updates: Partial<SmsNotification>): Promise<SmsNotification>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -85,6 +99,43 @@ export class DatabaseStorage implements IStorage {
 
   async updateTask(id: number, updates: UpdateTaskRequest): Promise<Task> {
     const [updated] = await db.update(tasks).set(updates).where(eq(tasks.id, id)).returning();
+    return updated;
+  }
+
+  // Staff methods
+  async getStaff(): Promise<Staff[]> {
+    return await db.select().from(staff);
+  }
+
+  async getActiveStaff(): Promise<Staff[]> {
+    return await db.select().from(staff).where(eq(staff.isActive, true));
+  }
+
+  async createStaff(staffMember: CreateStaffRequest): Promise<Staff> {
+    const [newStaff] = await db.insert(staff).values(staffMember).returning();
+    return newStaff;
+  }
+
+  async updateStaff(id: number, updates: UpdateStaffRequest): Promise<Staff> {
+    const [updated] = await db.update(staff).set(updates).where(eq(staff.id, id)).returning();
+    return updated;
+  }
+
+  async deleteStaff(id: number): Promise<void> {
+    await db.delete(staff).where(eq(staff.id, id));
+  }
+
+  // SMS Notification methods
+  async getSmsNotifications(eventId: number): Promise<SmsNotification[]> {
+    return await db.select().from(smsNotifications).where(eq(smsNotifications.eventId, eventId));
+  }
+
+  async createSmsNotifications(notifications: CreateSmsNotificationRequest[]): Promise<SmsNotification[]> {
+    return await db.insert(smsNotifications).values(notifications).returning();
+  }
+
+  async updateSmsNotification(id: number, updates: Partial<SmsNotification>): Promise<SmsNotification> {
+    const [updated] = await db.update(smsNotifications).set(updates).where(eq(smsNotifications.id, id)).returning();
     return updated;
   }
 }

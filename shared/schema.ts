@@ -56,6 +56,25 @@ export const tasks = pgTable("tasks", {
   dueDate: timestamp("due_date"),
 });
 
+// --- STAFF MANAGEMENT FOR SMS ---
+export const staff = pgTable("staff", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(), // E.164 format with +354 prefix
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const smsNotifications = pgTable("sms_notifications", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().references(() => events.id),
+  staffId: integer("staff_id").notNull().references(() => staff.id),
+  message: text("message").notNull(),
+  status: text("status").$type<"pending" | "sent" | "failed">().default("pending").notNull(),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // --- REPLIT AI CHAT TABLES (from blueprint) ---
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
@@ -87,9 +106,25 @@ export const meetingsRelations = relations(meetings, ({ one, many }) => ({
 // --- SCHEMAS ---
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
-export const insertMeetingSchema = createInsertSchema(meetings).omit({ id: true, createdAt: true });
-export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true });
+
+export const insertEventSchema = createInsertSchema(events, {
+  status: z.enum(["planning", "advertised", "completed"]),
+}).omit({ id: true, createdAt: true });
+
+export const insertMeetingSchema = createInsertSchema(meetings, {
+  status: z.enum(["scheduled", "completed"]),
+}).omit({ id: true, createdAt: true });
+
+export const insertTaskSchema = createInsertSchema(tasks, {
+  priority: z.enum(["hot", "warm", "cold"]),
+  status: z.enum(["todo", "in_progress", "done"]),
+}).omit({ id: true });
+
+export const insertStaffSchema = createInsertSchema(staff).omit({ id: true, createdAt: true });
+
+export const insertSmsNotificationSchema = createInsertSchema(smsNotifications, {
+  status: z.enum(["pending", "sent", "failed"]),
+}).omit({ id: true, createdAt: true, sentAt: true });
 
 // --- API TYPES ---
 
@@ -99,6 +134,8 @@ export type Meeting = typeof meetings.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type Staff = typeof staff.$inferSelect;
+export type SmsNotification = typeof smsNotifications.$inferSelect;
 
 export type CreateEventRequest = z.infer<typeof insertEventSchema>;
 export type UpdateEventRequest = Partial<CreateEventRequest>;
@@ -108,3 +145,8 @@ export type UpdateMeetingRequest = Partial<CreateMeetingRequest>;
 
 export type CreateTaskRequest = z.infer<typeof insertTaskSchema>;
 export type UpdateTaskRequest = Partial<CreateTaskRequest>;
+
+export type CreateStaffRequest = z.infer<typeof insertStaffSchema>;
+export type UpdateStaffRequest = Partial<CreateStaffRequest>;
+
+export type CreateSmsNotificationRequest = z.infer<typeof insertSmsNotificationSchema>;

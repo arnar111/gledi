@@ -1,18 +1,42 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { api, buildUrl } from "@shared/routes";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Staff, Event } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Wand2, Calendar, MapPin, Users } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Loader2, Plus, Wand2, Calendar, MapPin, Users, MessageSquare, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function EventsPage() {
   const { toast } = useToast();
-  const { data: events, isLoading } = useQuery({
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [smsMessage, setSmsMessage] = useState("");
+  const [selectedStaffIds, setSelectedStaffIds] = useState<number[]>([]);
+
+  const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: [api.events.list.path],
   });
+
+  const { data: staffList = [] } = useQuery<Staff[]>({
+    queryKey: [api.staff.list.path],
+  });
+
+  const activeStaff = staffList.filter((s) => s.isActive);
 
   const posterMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -24,6 +48,58 @@ export default function EventsPage() {
       toast({ title: "Poster generated successfully!" });
     },
   });
+
+  const smsMutation = useMutation({
+    mutationFn: async ({ eventId, message, staffIds }: { eventId: number; message: string; staffIds: number[] }) => {
+      await apiRequest("POST", `/api/events/${eventId}/sms`, { message, staffIds });
+      const res = await apiRequest("POST", `/api/events/${eventId}/sms/send`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: `SMS notifications queued! ${data.sent} messages will be sent.` });
+      closeSmsDialog();
+    },
+    onError: () => {
+      toast({ title: "Failed to send SMS notifications", variant: "destructive" });
+    },
+  });
+
+  const openSmsDialog = (event: Event) => {
+    setSelectedEvent(event);
+    setSelectedStaffIds(activeStaff.map((s) => s.id));
+    setSmsMessage(`You're invited to ${event.title} on ${new Date(event.date).toLocaleDateString()}! ${event.location ? `Location: ${event.location}` : ""}`);
+    setSmsDialogOpen(true);
+  };
+
+  const closeSmsDialog = () => {
+    setSmsDialogOpen(false);
+    setSelectedEvent(null);
+    setSmsMessage("");
+    setSelectedStaffIds([]);
+  };
+
+  const toggleStaffSelection = (staffId: number) => {
+    setSelectedStaffIds((prev) =>
+      prev.includes(staffId) ? prev.filter((id) => id !== staffId) : [...prev, staffId]
+    );
+  };
+
+  const selectAllStaff = () => {
+    setSelectedStaffIds(activeStaff.map((s) => s.id));
+  };
+
+  const deselectAllStaff = () => {
+    setSelectedStaffIds([]);
+  };
+
+  const handleSendSms = () => {
+    if (!selectedEvent || !smsMessage || selectedStaffIds.length === 0) return;
+    smsMutation.mutate({
+      eventId: selectedEvent.id,
+      message: smsMessage,
+      staffIds: selectedStaffIds,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -126,6 +202,17 @@ export default function EventsPage() {
                   </div>
                 )}
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 mt-2"
+                onClick={() => openSmsDialog(event)}
+                data-testid={`button-notify-staff-${event.id}`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Notify Staff
+              </Button>
             </CardContent>
           </Card>
         ))}
@@ -140,6 +227,102 @@ export default function EventsPage() {
           <p className="text-muted-foreground mt-1" data-testid="text-empty-message">Create your first event to get started</p>
         </div>
       )}
+
+      <Dialog open={smsDialogOpen} onOpenChange={setSmsDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle data-testid="text-sms-dialog-title">Notify Staff via SMS</DialogTitle>
+            <DialogDescription data-testid="text-sms-dialog-description">
+              Send SMS notifications about "{selectedEvent?.title}" to selected staff members.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="sms-message">Message</Label>
+              <Textarea
+                id="sms-message"
+                value={smsMessage}
+                onChange={(e) => setSmsMessage(e.target.value)}
+                placeholder="Enter your SMS message..."
+                className="min-h-[100px]"
+                maxLength={160}
+                data-testid="input-sms-message"
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {smsMessage.length}/160 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Recipients ({selectedStaffIds.length} selected)</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={selectAllStaff}
+                    data-testid="button-select-all"
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={deselectAllStaff}
+                    data-testid="button-deselect-all"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-[200px] overflow-y-auto border rounded-md p-2 space-y-1">
+                {activeStaff.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No active staff members. Add staff in the Staff page first.
+                  </p>
+                ) : (
+                  activeStaff.map((staff) => (
+                    <label
+                      key={staff.id}
+                      className="flex items-center gap-3 p-2 rounded-md hover-elevate cursor-pointer"
+                      data-testid={`checkbox-staff-${staff.id}`}
+                    >
+                      <Checkbox
+                        checked={selectedStaffIds.includes(staff.id)}
+                        onCheckedChange={() => toggleStaffSelection(staff.id)}
+                      />
+                      <span className="flex-1 text-sm">{staff.name}</span>
+                      <span className="text-xs text-muted-foreground">{staff.phone}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeSmsDialog} data-testid="button-cancel-sms">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendSms}
+              disabled={smsMutation.isPending || selectedStaffIds.length === 0 || !smsMessage}
+              className="gap-2"
+              data-testid="button-send-sms"
+            >
+              {smsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Send to {selectedStaffIds.length} {selectedStaffIds.length === 1 ? "person" : "people"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

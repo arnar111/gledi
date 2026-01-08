@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Calendar, PartyPopper, Book, Settings, ChevronUp, Command, Sparkles } from "lucide-react"
+import { Calendar, PartyPopper, Book, Settings, ChevronUp, Command, Sparkles, Users } from "lucide-react"
 import { Link, useLocation } from "wouter"
 import {
   Sidebar,
@@ -32,6 +32,11 @@ const mainItems = [
     title: "Handbook",
     url: "/handbook",
     icon: Book,
+  },
+  {
+    title: "Staff",
+    url: "/staff",
+    icon: Users,
   },
 ]
 

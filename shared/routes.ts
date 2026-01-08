@@ -3,9 +3,12 @@ import {
   insertEventSchema, 
   insertMeetingSchema, 
   insertTaskSchema,
+  insertStaffSchema,
   events,
   meetings,
-  tasks
+  tasks,
+  staff,
+  smsNotifications
 } from './schema';
 
 export const errorSchemas = {
@@ -115,14 +118,62 @@ export const api = {
       },
     },
   },
-  notifications: {
-    sendSms: {
+  staff: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/staff',
+      responses: {
+        200: z.array(z.custom<typeof staff.$inferSelect>()),
+      },
+    },
+    create: {
       method: 'POST' as const,
-      path: '/api/notify/sms',
-      input: z.object({ message: z.string(), phoneNumbers: z.array(z.string()) }),
+      path: '/api/staff',
+      input: insertStaffSchema,
+      responses: {
+        201: z.custom<typeof staff.$inferSelect>(),
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/staff/:id',
+      input: insertStaffSchema.partial(),
+      responses: {
+        200: z.custom<typeof staff.$inferSelect>(),
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/staff/:id',
       responses: {
         200: z.object({ success: z.boolean() }),
-        400: errorSchemas.validation,
+      },
+    },
+  },
+  smsNotifications: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/events/:eventId/sms',
+      responses: {
+        200: z.array(z.custom<typeof smsNotifications.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/events/:eventId/sms',
+      input: z.object({
+        message: z.string(),
+        staffIds: z.array(z.number()),
+      }),
+      responses: {
+        201: z.array(z.custom<typeof smsNotifications.$inferSelect>()),
+      },
+    },
+    send: {
+      method: 'POST' as const,
+      path: '/api/events/:eventId/sms/send',
+      responses: {
+        200: z.object({ sent: z.number(), failed: z.number() }),
       },
     },
   },
