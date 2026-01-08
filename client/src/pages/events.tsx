@@ -166,9 +166,11 @@ export default function EventsPage() {
             
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-xl font-bold leading-tight" data-testid={`text-event-title-${event.id}`}>
-                  {event.title}
-                </CardTitle>
+                <Link href={`/events/${event.id}`}>
+                  <CardTitle className="text-xl font-bold leading-tight hover:underline cursor-pointer" data-testid={`text-event-title-${event.id}`}>
+                    {event.title}
+                  </CardTitle>
+                </Link>
                 <Badge 
                   variant={event.status === 'planning' ? 'secondary' : 'default'}
                   className="shrink-0"

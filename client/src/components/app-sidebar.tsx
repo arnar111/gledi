@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Calendar, PartyPopper, Book, Settings, ChevronUp, Command, Sparkles, Users } from "lucide-react"
+import { Calendar, PartyPopper, Book, Settings, ChevronUp, Command, Sparkles, Users, LayoutDashboard, Copy, CalendarDays } from "lucide-react"
 import { Link, useLocation } from "wouter"
 import {
   Sidebar,
@@ -13,30 +13,43 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { Badge } from "@/components/ui/badge"
 import { CommandPalette } from "@/components/command-palette"
 
 const mainItems = [
   {
-    title: "Events",
+    title: "Dashboard",
     url: "/",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Events",
+    url: "/events",
     icon: PartyPopper,
   },
   {
     title: "Meetings",
     url: "/meetings",
     icon: Calendar,
-    badge: "New",
   },
   {
-    title: "Handbook",
-    url: "/handbook",
-    icon: Book,
+    title: "Calendar",
+    url: "/calendar",
+    icon: CalendarDays,
+  },
+  {
+    title: "Templates",
+    url: "/templates",
+    icon: Copy,
   },
   {
     title: "Staff",
     url: "/staff",
     icon: Users,
+  },
+  {
+    title: "Handbook",
+    url: "/handbook",
+    icon: Book,
   },
 ]
 
@@ -91,11 +104,6 @@ export function AppSidebar() {
                       <Link href={item.url} data-testid={`nav-${item.title.toLowerCase()}`}>
                         <item.icon className="w-4 h-4" />
                         <span className="flex-1">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs px-1.5">
-                            {item.badge}
-                          </Badge>
-                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

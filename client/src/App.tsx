@@ -5,10 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import DashboardPage from "@/pages/dashboard";
 import EventsPage from "@/pages/events";
+import EventDetailPage from "@/pages/event-detail";
 import NewEventPage from "@/pages/new-event";
 import MeetingsPage from "@/pages/meetings";
 import NewMeetingPage from "@/pages/new-meeting";
+import CalendarPage from "@/pages/calendar";
+import TemplatesPage from "@/pages/templates";
 import HandbookPage from "@/pages/handbook";
 import StaffPage from "@/pages/staff";
 import NotFound from "@/pages/not-found";
@@ -16,10 +20,14 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={EventsPage} />
+      <Route path="/" component={DashboardPage} />
+      <Route path="/events" component={EventsPage} />
       <Route path="/events/new" component={NewEventPage} />
+      <Route path="/events/:id" component={EventDetailPage} />
       <Route path="/meetings" component={MeetingsPage} />
       <Route path="/meetings/new" component={NewMeetingPage} />
+      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/templates" component={TemplatesPage} />
       <Route path="/handbook" component={HandbookPage} />
       <Route path="/staff" component={StaffPage} />
       <Route component={NotFound} />
