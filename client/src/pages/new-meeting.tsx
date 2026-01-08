@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Video, ExternalLink, History } from "lucide-react";
+import { Loader2, ArrowLeft, Video, ExternalLink, History, Download } from "lucide-react";
+import { useState } from "react";
 
 const formSchema = insertMeetingSchema.extend({
   date: z.string().min(1, "Date is required"),
@@ -25,6 +26,7 @@ export default function NewMeetingPage() {
   const searchString = useSearch();
   const isPastMeeting = searchString.includes('past=true');
   const { toast } = useToast();
+  const [isImporting, setIsImporting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -58,6 +60,31 @@ export default function NewMeetingPage() {
 
   const onSubmit = (data: FormData) => {
     createMutation.mutate(data);
+  };
+
+  const handleImportFromLoop = async () => {
+    const loopUrl = form.getValues('loopLink');
+    if (!loopUrl) {
+      toast({ title: "Please enter a Loop document link first", variant: "destructive" });
+      return;
+    }
+    
+    setIsImporting(true);
+    try {
+      const res = await apiRequest("POST", "/api/loop/import", { loopUrl });
+      const data = await res.json();
+      if (data.content) {
+        const currentMinutes = form.getValues('minutes') || '';
+        form.setValue('minutes', currentMinutes ? `${currentMinutes}\n\n${data.content}` : data.content);
+        toast({ title: "Content imported from Loop!" });
+      } else {
+        toast({ title: "No content found in Loop document", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Failed to import from Loop", description: err.message, variant: "destructive" });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   return (
@@ -155,7 +182,21 @@ export default function NewMeetingPage() {
                 name="minutes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel data-testid="label-minutes">{isPastMeeting ? "Meeting Minutes" : "Agenda / Notes"}</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel data-testid="label-minutes">{isPastMeeting ? "Meeting Minutes" : "Agenda / Notes"}</FormLabel>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-1.5"
+                        onClick={handleImportFromLoop}
+                        disabled={isImporting}
+                        data-testid="button-import-loop"
+                      >
+                        {isImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                        Import from Loop
+                      </Button>
+                    </div>
                     <FormControl>
                       <Textarea 
                         placeholder="Meeting agenda and notes..."

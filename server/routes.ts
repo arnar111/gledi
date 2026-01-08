@@ -6,6 +6,7 @@ import { z } from "zod";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { openai } from "./replit_integrations/image/client";
+import { fetchLoopContent } from "./sharepoint";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -85,6 +86,20 @@ export async function registerRoutes(
     const id = parseInt(req.params.id);
     const meeting = await storage.updateMeeting(id, req.body);
     res.json(meeting);
+  });
+
+  app.post('/api/loop/import', async (req, res) => {
+    try {
+      const { loopUrl } = req.body;
+      if (!loopUrl) {
+        return res.status(400).json({ message: 'Loop URL is required' });
+      }
+      const content = await fetchLoopContent(loopUrl);
+      res.json({ content });
+    } catch (err: any) {
+      console.error('Loop import error:', err);
+      res.status(500).json({ message: err.message || 'Failed to import from Loop' });
+    }
   });
 
   // Tasks
