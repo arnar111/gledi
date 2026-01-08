@@ -50,48 +50,86 @@ export async function fetchLoopContent(loopUrl: string): Promise<string> {
   try {
     const client = await getSharePointClient();
     
-    const decodedUrl = decodeURIComponent(loopUrl);
+    let fullyDecodedUrl = loopUrl;
+    try {
+      while (fullyDecodedUrl.includes('%')) {
+        const decoded = decodeURIComponent(fullyDecodedUrl);
+        if (decoded === fullyDecodedUrl) break;
+        fullyDecodedUrl = decoded;
+      }
+    } catch (e) {
+    }
     
-    let siteId: string | null = null;
-    let driveItemPath: string | null = null;
+    console.log('Processing Loop URL...');
     
-    const sharepointMatch = decodedUrl.match(/https:\/\/([^\/]+)\.sharepoint\.com/);
-    if (sharepointMatch) {
-      const domain = sharepointMatch[1];
+    const contentStorageMatch = fullyDecodedUrl.match(/CSP_([a-f0-9-]+)/i);
+    const loopFileMatch = fullyDecodedUrl.match(/([^\/]+\.loop)/i);
+    
+    if (contentStorageMatch && loopFileMatch) {
+      const siteId = contentStorageMatch[1];
+      const fileName = loopFileMatch[1];
       
-      const pathMatch = decodedUrl.match(/contentstorage\/([^\/]+)\/.*?\/([^?]+\.loop)/);
-      if (pathMatch) {
-        const contentStorageId = pathMatch[1];
-        const fileName = pathMatch[2];
-        
-        try {
-          const site = await client.api(`/sites/${domain}.sharepoint.com:/contentStorage/${contentStorageId}`).get();
-          siteId = site.id;
+      console.log(`Found CSP site ID: ${siteId}, file: ${fileName}`);
+      
+      try {
+        const sharepointDomain = fullyDecodedUrl.match(/https?:\/\/([^\/]+\.sharepoint\.com)/)?.[1];
+        if (sharepointDomain) {
+          const siteResponse = await client.api(`/sites/${sharepointDomain}:/contentstorage/CSP_${siteId}`).get();
+          console.log('Site found:', siteResponse.id);
           
-          const drives = await client.api(`/sites/${siteId}/drives`).get();
-          if (drives.value && drives.value.length > 0) {
-            const drive = drives.value[0];
-            
-            const searchResults = await client.api(`/drives/${drive.id}/root/search(q='${fileName}')`).get();
-            
-            if (searchResults.value && searchResults.value.length > 0) {
-              const item = searchResults.value[0];
-              
-              const content = await client.api(`/drives/${drive.id}/items/${item.id}/content`).get();
-              
-              if (typeof content === 'string') {
-                return stripHtmlTags(content);
+          const drivesResponse = await client.api(`/sites/${siteResponse.id}/drives`).get();
+          if (drivesResponse.value?.length > 0) {
+            for (const drive of drivesResponse.value) {
+              try {
+                const searchResults = await client.api(`/drives/${drive.id}/root/search(q='${fileName.replace('.loop', '')}')`).get();
+                
+                if (searchResults.value?.length > 0) {
+                  const item = searchResults.value[0];
+                  console.log('Found item:', item.name);
+                  
+                  const content = await client.api(`/drives/${drive.id}/items/${item.id}/content`).get();
+                  
+                  if (typeof content === 'string') {
+                    return stripHtmlTags(content);
+                  }
+                  if (content && typeof content === 'object') {
+                    return JSON.stringify(content, null, 2);
+                  }
+                }
+              } catch (searchErr: any) {
+                console.log(`Search in drive ${drive.id} failed:`, searchErr.message);
               }
-              return JSON.stringify(content, null, 2);
             }
           }
-        } catch (graphError: any) {
-          console.log('Graph API error:', graphError.message);
         }
+      } catch (siteErr: any) {
+        console.log('Site access error:', siteErr.message);
       }
     }
     
-    return "Could not fetch Loop content. Please ensure the Loop document is accessible and try again.";
+    const shareableUrlMatch = fullyDecodedUrl.match(/https:\/\/[^\/]+\.sharepoint\.com\/:fl:\/[^?]+/);
+    if (shareableUrlMatch) {
+      try {
+        const encodedUrl = Buffer.from(shareableUrlMatch[0]).toString('base64')
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        
+        const sharedItem = await client.api(`/shares/u!${encodedUrl}/driveItem`).get();
+        console.log('Found shared item:', sharedItem.name);
+        
+        const content = await client.api(`/drives/${sharedItem.parentReference.driveId}/items/${sharedItem.id}/content`).get();
+        
+        if (typeof content === 'string') {
+          return stripHtmlTags(content);
+        }
+        if (content && typeof content === 'object') {
+          return JSON.stringify(content, null, 2);
+        }
+      } catch (shareErr: any) {
+        console.log('Sharing URL access error:', shareErr.message);
+      }
+    }
+    
+    return "Could not fetch Loop content. The SharePoint connector may not have access to Loop's content storage. Please ensure the Loop document is shared with your organization.";
   } catch (error: any) {
     console.error('Error fetching Loop content:', error);
     throw new Error(`Failed to fetch Loop content: ${error.message}`);
