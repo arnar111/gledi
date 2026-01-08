@@ -26,30 +26,35 @@ export default function MeetingsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-6">
         {meetings?.map((meeting: any) => (
-          <Card key={meeting.id} className="hover-elevate">
-            <CardHeader className="flex flex-row items-center justify-between gap-2">
-              <CardTitle>{meeting.title}</CardTitle>
-              {meeting.loopLink && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" /> Loop
-                  </a>
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between text-sm">
-                <span>{new Date(meeting.date).toLocaleString()}</span>
-                <span className="capitalize px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+          <Card key={meeting.id} className="hover-elevate border-none shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="text-xl font-bold">{meeting.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(meeting.date).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' })}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="capitalize px-3 py-1 rounded-full text-xs font-bold bg-secondary/10 text-secondary">
                   {meeting.status}
                 </span>
+                {meeting.loopLink && (
+                  <Button variant="outline" size="sm" className="rounded-full" asChild>
+                    <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> Loop Workspace
+                    </a>
+                  </Button>
+                )}
               </div>
+            </CardHeader>
+            <CardContent>
               {meeting.minutes && (
-                <div className="mt-4 p-3 bg-muted rounded-md text-sm">
-                  <p className="font-medium mb-1">Minutes Summary:</p>
-                  <p className="text-muted-foreground">{meeting.minutes}</p>
+                <div className="relative overflow-hidden rounded-xl bg-muted/30 p-4">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-secondary/30" />
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Minutes Summary</p>
+                  <p className="text-sm leading-relaxed text-foreground/80">{meeting.minutes}</p>
                 </div>
               )}
             </CardContent>
