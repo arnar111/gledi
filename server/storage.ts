@@ -1,12 +1,14 @@
 import { db } from "./db";
 import {
-  users, events, meetings, tasks, eventAttendees, staff, smsNotifications,
-  type User, type Event, type Meeting, type Task, type Staff, type SmsNotification,
+  users, events, meetings, tasks, eventAttendees, staff, smsNotifications, expenses, eventTemplates,
+  type User, type Event, type Meeting, type Task, type Staff, type SmsNotification, type Expense, type EventTemplate,
   type CreateEventRequest, type UpdateEventRequest,
   type CreateMeetingRequest, type UpdateMeetingRequest,
   type CreateTaskRequest, type UpdateTaskRequest,
   type CreateStaffRequest, type UpdateStaffRequest,
   type CreateSmsNotificationRequest,
+  type CreateExpenseRequest, type UpdateExpenseRequest,
+  type CreateEventTemplateRequest, type UpdateEventTemplateRequest,
 } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -42,6 +44,19 @@ export interface IStorage {
   getSmsNotifications(eventId: number): Promise<SmsNotification[]>;
   createSmsNotifications(notifications: CreateSmsNotificationRequest[]): Promise<SmsNotification[]>;
   updateSmsNotification(id: number, updates: Partial<SmsNotification>): Promise<SmsNotification>;
+
+  // Expenses
+  getExpenses(eventId: number): Promise<Expense[]>;
+  createExpense(expense: CreateExpenseRequest): Promise<Expense>;
+  updateExpense(id: number, updates: UpdateExpenseRequest): Promise<Expense>;
+  deleteExpense(id: number): Promise<void>;
+
+  // Event Templates
+  getEventTemplates(): Promise<EventTemplate[]>;
+  getEventTemplate(id: number): Promise<EventTemplate | undefined>;
+  createEventTemplate(template: CreateEventTemplateRequest): Promise<EventTemplate>;
+  updateEventTemplate(id: number, updates: UpdateEventTemplateRequest): Promise<EventTemplate>;
+  deleteEventTemplate(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -137,6 +152,49 @@ export class DatabaseStorage implements IStorage {
   async updateSmsNotification(id: number, updates: Partial<SmsNotification>): Promise<SmsNotification> {
     const [updated] = await db.update(smsNotifications).set(updates).where(eq(smsNotifications.id, id)).returning();
     return updated;
+  }
+
+  // Expense methods
+  async getExpenses(eventId: number): Promise<Expense[]> {
+    return await db.select().from(expenses).where(eq(expenses.eventId, eventId));
+  }
+
+  async createExpense(expense: CreateExpenseRequest): Promise<Expense> {
+    const [newExpense] = await db.insert(expenses).values(expense).returning();
+    return newExpense;
+  }
+
+  async updateExpense(id: number, updates: UpdateExpenseRequest): Promise<Expense> {
+    const [updated] = await db.update(expenses).set(updates).where(eq(expenses.id, id)).returning();
+    return updated;
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    await db.delete(expenses).where(eq(expenses.id, id));
+  }
+
+  // Event Template methods
+  async getEventTemplates(): Promise<EventTemplate[]> {
+    return await db.select().from(eventTemplates);
+  }
+
+  async getEventTemplate(id: number): Promise<EventTemplate | undefined> {
+    const [template] = await db.select().from(eventTemplates).where(eq(eventTemplates.id, id));
+    return template;
+  }
+
+  async createEventTemplate(template: CreateEventTemplateRequest): Promise<EventTemplate> {
+    const [newTemplate] = await db.insert(eventTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateEventTemplate(id: number, updates: UpdateEventTemplateRequest): Promise<EventTemplate> {
+    const [updated] = await db.update(eventTemplates).set(updates).where(eq(eventTemplates.id, id)).returning();
+    return updated;
+  }
+
+  async deleteEventTemplate(id: number): Promise<void> {
+    await db.delete(eventTemplates).where(eq(eventTemplates.id, id));
   }
 }
 

@@ -56,6 +56,36 @@ export const tasks = pgTable("tasks", {
   dueDate: timestamp("due_date"),
 });
 
+// --- EXPENSE TRACKING ---
+export const expenseCategories = ["food", "decorations", "entertainment", "venue", "equipment", "prizes", "other"] as const;
+
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().references(() => events.id),
+  description: text("description").notNull(),
+  amount: integer("amount").notNull(), // in ISK
+  category: text("category").$type<typeof expenseCategories[number]>().notNull(),
+  vendor: text("vendor"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// --- EVENT TEMPLATES ---
+export const eventTemplates = pgTable("event_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  location: text("location"),
+  budget: integer("budget").notNull(),
+  maxAttendees: integer("max_attendees"),
+  isRecurring: boolean("is_recurring").default(false).notNull(),
+  recurringType: text("recurring_type").$type<"weekly" | "biweekly" | "monthly">(),
+  recurringDayOfWeek: integer("recurring_day_of_week"), // 0-6, Sunday=0
+  recurringDayOfMonth: integer("recurring_day_of_month"), // 1-31
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // --- STAFF MANAGEMENT FOR SMS ---
 export const staff = pgTable("staff", {
   id: serial("id").primaryKey(),
@@ -126,6 +156,14 @@ export const insertSmsNotificationSchema = createInsertSchema(smsNotifications, 
   status: z.enum(["pending", "sent", "failed"]),
 }).omit({ id: true, createdAt: true, sentAt: true });
 
+export const insertExpenseSchema = createInsertSchema(expenses, {
+  category: z.enum(expenseCategories),
+}).omit({ id: true, createdAt: true });
+
+export const insertEventTemplateSchema = createInsertSchema(eventTemplates, {
+  recurringType: z.enum(["weekly", "biweekly", "monthly"]).optional(),
+}).omit({ id: true, createdAt: true });
+
 // --- API TYPES ---
 
 export type User = typeof users.$inferSelect;
@@ -136,6 +174,8 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Staff = typeof staff.$inferSelect;
 export type SmsNotification = typeof smsNotifications.$inferSelect;
+export type Expense = typeof expenses.$inferSelect;
+export type EventTemplate = typeof eventTemplates.$inferSelect;
 
 export type CreateEventRequest = z.infer<typeof insertEventSchema>;
 export type UpdateEventRequest = Partial<CreateEventRequest>;
@@ -150,3 +190,9 @@ export type CreateStaffRequest = z.infer<typeof insertStaffSchema>;
 export type UpdateStaffRequest = Partial<CreateStaffRequest>;
 
 export type CreateSmsNotificationRequest = z.infer<typeof insertSmsNotificationSchema>;
+
+export type CreateExpenseRequest = z.infer<typeof insertExpenseSchema>;
+export type UpdateExpenseRequest = Partial<CreateExpenseRequest>;
+
+export type CreateEventTemplateRequest = z.infer<typeof insertEventTemplateSchema>;
+export type UpdateEventTemplateRequest = Partial<CreateEventTemplateRequest>;

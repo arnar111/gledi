@@ -204,6 +204,118 @@ export async function registerRoutes(
     res.json({ sent: pending.length, failed: 0 });
   });
 
+  // Expenses
+  app.get('/api/events/:eventId/expenses', async (req, res) => {
+    const eventId = parseInt(req.params.eventId);
+    const expenseList = await storage.getExpenses(eventId);
+    res.json(expenseList);
+  });
+
+  app.post('/api/events/:eventId/expenses', async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      const input = api.expenses.create.input.parse(req.body);
+      const expense = await storage.createExpense({ ...input, eventId });
+      res.status(201).json(expense);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch('/api/expenses/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const input = api.expenses.update.input.parse(req.body);
+      const expense = await storage.updateExpense(id, input);
+      res.json(expense);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete('/api/expenses/:id', async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteExpense(id);
+    res.json({ success: true });
+  });
+
+  // Event Templates
+  app.get('/api/templates', async (_req, res) => {
+    const templates = await storage.getEventTemplates();
+    res.json(templates);
+  });
+
+  app.post('/api/templates', async (req, res) => {
+    try {
+      const input = api.eventTemplates.create.input.parse(req.body);
+      const template = await storage.createEventTemplate(input);
+      res.status(201).json(template);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch('/api/templates/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const input = api.eventTemplates.update.input.parse(req.body);
+      const template = await storage.updateEventTemplate(id, input);
+      res.json(template);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete('/api/templates/:id', async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteEventTemplate(id);
+    res.json({ success: true });
+  });
+
+  app.post('/api/templates/:id/create-event', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getEventTemplate(id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      const input = api.eventTemplates.createEventFromTemplate.input.parse(req.body);
+      const event = await storage.createEvent({
+        title: template.title,
+        description: template.description,
+        date: new Date(input.date),
+        location: template.location,
+        budget: template.budget,
+        maxAttendees: template.maxAttendees,
+        status: "planning",
+        posterUrl: null,
+        slackMessageTs: null,
+      });
+      res.status(201).json(event);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Seed Data
   await seedDatabase();
 

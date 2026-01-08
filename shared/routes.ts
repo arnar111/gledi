@@ -4,11 +4,16 @@ import {
   insertMeetingSchema, 
   insertTaskSchema,
   insertStaffSchema,
+  insertExpenseSchema,
+  insertEventTemplateSchema,
+  expenseCategories,
   events,
   meetings,
   tasks,
   staff,
-  smsNotifications
+  smsNotifications,
+  expenses,
+  eventTemplates
 } from './schema';
 
 export const errorSchemas = {
@@ -174,6 +179,80 @@ export const api = {
       path: '/api/events/:eventId/sms/send',
       responses: {
         200: z.object({ sent: z.number(), failed: z.number() }),
+      },
+    },
+  },
+  expenses: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/events/:eventId/expenses',
+      responses: {
+        200: z.array(z.custom<typeof expenses.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/events/:eventId/expenses',
+      input: insertExpenseSchema.omit({ eventId: true }),
+      responses: {
+        201: z.custom<typeof expenses.$inferSelect>(),
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/expenses/:id',
+      input: insertExpenseSchema.partial(),
+      responses: {
+        200: z.custom<typeof expenses.$inferSelect>(),
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/expenses/:id',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+  },
+  eventTemplates: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/templates',
+      responses: {
+        200: z.array(z.custom<typeof eventTemplates.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/templates',
+      input: insertEventTemplateSchema,
+      responses: {
+        201: z.custom<typeof eventTemplates.$inferSelect>(),
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/templates/:id',
+      input: insertEventTemplateSchema.partial(),
+      responses: {
+        200: z.custom<typeof eventTemplates.$inferSelect>(),
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/templates/:id',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+    createEventFromTemplate: {
+      method: 'POST' as const,
+      path: '/api/templates/:id/create-event',
+      input: z.object({
+        date: z.string(),
+      }),
+      responses: {
+        201: z.custom<typeof events.$inferSelect>(),
       },
     },
   },
