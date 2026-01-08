@@ -1,18 +1,110 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// --- EXISTING USER TABLE (from template) ---
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+// --- CORE TABLES ---
+
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  location: text("location"),
+  status: text("status").$type<"planning" | "advertised" | "completed">().default("planning").notNull(),
+  posterUrl: text("poster_url"),
+  slackMessageTs: text("slack_message_ts"),
+  budget: integer("budget").notNull(), // in KR
+  maxAttendees: integer("max_attendees"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export const eventAttendees = pgTable("event_attendees", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().references(() => events.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  status: text("status").$type<"going" | "maybe" | "not_going">().notNull(),
+});
+
+export const meetings = pgTable("meetings", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  date: timestamp("date").notNull(),
+  chairpersonId: integer("chairperson_id").references(() => users.id),
+  secretaryId: integer("secretary_id").references(() => users.id),
+  loopLink: text("loop_link"),
+  minutes: text("minutes"), // Markdown or text
+  status: text("status").$type<"scheduled" | "completed">().default("scheduled").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  priority: text("priority").$type<"hot" | "warm" | "cold">().notNull(),
+  status: text("status").$type<"todo" | "in_progress" | "done">().default("todo").notNull(),
+  assigneeId: integer("assignee_id").references(() => users.id),
+  eventId: integer("event_id").references(() => events.id),
+  meetingId: integer("meeting_id").references(() => meetings.id),
+  dueDate: timestamp("due_date"),
+});
+
+// --- REPLIT AI CHAT TABLES (from blueprint) ---
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// --- RELATIONS ---
+
+export const eventsRelations = relations(events, ({ many }) => ({
+  attendees: many(eventAttendees),
+  tasks: many(tasks),
+}));
+
+export const meetingsRelations = relations(meetings, ({ one, many }) => ({
+  chairperson: one(users, { fields: [meetings.chairpersonId], references: [users.id] }),
+  secretary: one(users, { fields: [meetings.secretaryId], references: [users.id] }),
+  tasks: many(tasks),
+}));
+
+// --- SCHEMAS ---
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true });
+export const insertMeetingSchema = createInsertSchema(meetings).omit({ id: true, createdAt: true });
+export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true });
+
+// --- API TYPES ---
+
 export type User = typeof users.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type Meeting = typeof meetings.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+
+export type CreateEventRequest = z.infer<typeof insertEventSchema>;
+export type UpdateEventRequest = Partial<CreateEventRequest>;
+
+export type CreateMeetingRequest = z.infer<typeof insertMeetingSchema>;
+export type UpdateMeetingRequest = Partial<CreateMeetingRequest>;
+
+export type CreateTaskRequest = z.infer<typeof insertTaskSchema>;
+export type UpdateTaskRequest = Partial<CreateTaskRequest>;
