@@ -4,7 +4,7 @@ import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, ExternalLink, Calendar, FileText, Video } from "lucide-react";
+import { Loader2, Plus, ExternalLink, Calendar, FileText, Video, History } from "lucide-react";
 
 export default function MeetingsPage() {
   const { data: meetings, isLoading } = useQuery({
@@ -28,11 +28,18 @@ export default function MeetingsPage() {
           </h2>
           <p className="text-muted-foreground mt-1" data-testid="text-meetings-subtitle">Schedule and track your planning sessions</p>
         </div>
-        <Button className="gap-2" asChild data-testid="button-schedule-meeting">
-          <Link href="/meetings/new">
-            <Plus className="h-4 w-4" /> Schedule Meeting
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="gap-2" asChild data-testid="button-add-old-meeting">
+            <Link href="/meetings/new?past=true">
+              <History className="h-4 w-4" /> Add Old Meeting
+            </Link>
+          </Button>
+          <Button className="gap-2" asChild data-testid="button-schedule-meeting">
+            <Link href="/meetings/new">
+              <Plus className="h-4 w-4" /> Schedule Meeting
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4" data-testid="list-meetings">

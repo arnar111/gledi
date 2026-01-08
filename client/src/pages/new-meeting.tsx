@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { z } from "zod";
 import { insertMeetingSchema } from "@shared/schema";
 import { api } from "@shared/routes";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Video, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, Video, ExternalLink, History } from "lucide-react";
 
 const formSchema = insertMeetingSchema.extend({
   date: z.string().min(1, "Date is required"),
@@ -22,6 +22,8 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function NewMeetingPage() {
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const isPastMeeting = searchString.includes('past=true');
   const { toast } = useToast();
 
   const form = useForm<FormData>({
@@ -39,18 +41,18 @@ export default function NewMeetingPage() {
       const payload = {
         ...data,
         date: new Date(data.date).toISOString(),
-        status: "scheduled" as const,
+        status: isPastMeeting ? "completed" as const : "scheduled" as const,
       };
       const res = await apiRequest("POST", api.meetings.create.path, payload);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.meetings.list.path] });
-      toast({ title: "Meeting scheduled successfully!" });
+      toast({ title: isPastMeeting ? "Meeting added successfully!" : "Meeting scheduled successfully!" });
       navigate("/meetings");
     },
     onError: () => {
-      toast({ title: "Failed to schedule meeting", variant: "destructive" });
+      toast({ title: isPastMeeting ? "Failed to add meeting" : "Failed to schedule meeting", variant: "destructive" });
     },
   });
 
@@ -66,9 +68,11 @@ export default function NewMeetingPage() {
         </Button>
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent" data-testid="text-page-title">
-            Schedule Meeting
+            {isPastMeeting ? "Add Past Meeting" : "Schedule Meeting"}
           </h2>
-          <p className="text-muted-foreground mt-1" data-testid="text-page-subtitle">Plan your next committee session</p>
+          <p className="text-muted-foreground mt-1" data-testid="text-page-subtitle">
+            {isPastMeeting ? "Record a meeting that already happened" : "Plan your next committee session"}
+          </p>
         </div>
       </div>
 
@@ -76,7 +80,7 @@ export default function NewMeetingPage() {
         <CardHeader className="pb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20">
-              <Video className="h-5 w-5 text-primary" />
+              {isPastMeeting ? <History className="h-5 w-5 text-primary" /> : <Video className="h-5 w-5 text-primary" />}
             </div>
             <CardTitle data-testid="text-form-title">Meeting Details</CardTitle>
           </div>
@@ -151,7 +155,7 @@ export default function NewMeetingPage() {
                 name="minutes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel data-testid="label-minutes">Agenda / Notes</FormLabel>
+                    <FormLabel data-testid="label-minutes">{isPastMeeting ? "Meeting Minutes" : "Agenda / Notes"}</FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Meeting agenda and notes..."
@@ -162,7 +166,7 @@ export default function NewMeetingPage() {
                       />
                     </FormControl>
                     <FormDescription data-testid="text-minutes-description">
-                      Pre-fill the agenda or leave blank for later
+                      {isPastMeeting ? "Record what was discussed in the meeting" : "Pre-fill the agenda or leave blank for later"}
                     </FormDescription>
                     <FormMessage data-testid="error-minutes" />
                   </FormItem>
@@ -175,7 +179,7 @@ export default function NewMeetingPage() {
                 </Button>
                 <Button type="submit" disabled={createMutation.isPending} className="gap-2" data-testid="button-submit">
                   {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Schedule Meeting
+                  {isPastMeeting ? "Add Meeting" : "Schedule Meeting"}
                 </Button>
               </div>
             </form>
