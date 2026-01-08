@@ -118,19 +118,28 @@ export default function NewMeetingPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2" data-testid="label-loop-link">
-                      Microsoft Loop Link
+                      Microsoft Loop Document
                       <ExternalLink className="h-3 w-3 text-muted-foreground" />
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="https://loop.microsoft.com/..."
+                        placeholder="Paste Loop document link here..."
                         {...field}
                         value={field.value || ""}
                         data-testid="input-loop-link"
                       />
                     </FormControl>
                     <FormDescription data-testid="text-loop-description">
-                      Add a Loop workspace link for collaborative note-taking
+                      Paste a document link from your{" "}
+                      <a 
+                        href="https://loop.cloud.microsoft/p/eyJ3Ijp7InUiOiJodHRwczovL21pZGx1bi5zaGFyZXBvaW50LmNvbS8%2FbmF2PWN6MGxNa1ltWkQxaUlWSmlaMUl3YjA1ZmRtdGxhME5uTjAxQlpUVnhibk51Y0dSSU5HaExNVkpDY0VSQ1NFZDBaVEZhZEVOR1dTMWpXazh5VFdkUldtcHpNMDlTWWxwbE9VOG1aajB3TVZSQ1RGbEhVa3hLU2pKUlZrSkNOMDVOU2tSWlQwSkJVbGxJUkRWTlIwWldKbU05Sm1ac2RXbGtQVEUlM0QiLCJyIjpmYWxzZX0sInAiOnsidSI6Imh0dHBzOi8vbWlkbHVuLnNoYXJlcG9pbnQuY29tLzpmbDovci9jb250ZW50c3RvcmFnZS9DU1BfZDIxMWI4NDUtN2Y4My00N2JlLWE0MGEtMGVjYzAxZWU2YTllL0RvY3VtZW50JTIwTGlicmFyeS9Mb29wQXBwRGF0YS9VbnRpdGxlZC5sb29wP2Q9dzc1ZTM5ZDIzNTdjYzQ0MzJhY2U2MzAxMjNlZGMyZTBkJmNzZj0xJndlYj0xJm5hdj1jejBsTWtaamIyNTBaVzUwYzNSdmNtRm5aU1V5UmtOVFVGOWtNakV4WWpnME5TMDNaamd6TFRRM1ltVXRZVFF3WVMwd1pXTmpNREZsWlRaaE9XVW1aRDFpSVZKaVoxSXdiMDVmZG10bGEwTm5OMDFCWlRWeGJuTnVjR1JJTkdoTE1WSkNjRVJDU0VkMFpURmFkRU5HV1MxaldrOHlUV2RSV21wek0wOVNZbHBsT1U4bVpqMHdNVlJDVEZsSFVrcEVWRmhTV0V4VVExaEhTa05MV2xwU1VVTkpOMDVaVEZGT0ptTTlKVEpHSm1ac2RXbGtQVEVtWVQxTWIyOXdRWEJ3Sm5BOUpUUXdabXgxYVdSNEpUSkdiRzl2Y0Mxd1lXZGxMV052Ym5SaGFXNWxjaVo0UFNVM1FpVXlNbmNsTWpJbE0wRWxNakpVTUZKVVZVaDRkR0ZYVW5Oa1Z6UjFZekpvYUdOdFZuZGlNbXgxWkVNMWFtSXlNVGhaYVVaVFdXMWtVMDFIT1U5WU0xcHlXbGQwUkZwNlpFNVJWMVV4WTFjMWVtSnVRbXRUUkZKdlUzcEdVMUZ1UWtWUmEyaElaRWRWZUZkdVVrUlNiR3QwV1RGd1VFMXJNVzVWVm5CeFkzcE9VRlZ0U21GYVZHeFFaa1JCZUZaRlNrMVhWV1JUVkVWd1MwMXNSbGRSYTBrelZHc3hTMUpHYkZCUmEwWlRWMVZvUlU1Vk1VaFNiRmtsTTBRbE1qSWxNa01sTWpKcEpUSXlKVE5CSlRJeU5qazJNemMzWkRNdE1XVXdZaTAwTUdFNUxUaGhPR1l0TkRVNU5qa3pORFV4TldaaEpUSXlKVGRFIiwiciI6ZmFsc2V9LCJpIjp7ImkiOiI2OTYzNzdkMy0xZTBiLTQwYTktOGE4Zi00NTk2OTM0NTE1ZmEifX0%3D"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-medium"
+                        data-testid="link-loop-workspace"
+                      >
+                        Loop workspace
+                      </a>
                     </FormDescription>
                     <FormMessage data-testid="error-loop-link" />
                   </FormItem>
