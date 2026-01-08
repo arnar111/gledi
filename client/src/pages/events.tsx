@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { api, buildUrl } from "@shared/routes";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -41,8 +42,10 @@ export default function EventsPage() {
           </h2>
           <p className="text-muted-foreground mt-1" data-testid="text-events-subtitle">Plan and manage your workplace events</p>
         </div>
-        <Button className="gap-2" data-testid="button-new-event">
-          <Plus className="h-4 w-4" /> New Event
+        <Button className="gap-2" asChild data-testid="button-new-event">
+          <Link href="/events/new">
+            <Plus className="h-4 w-4" /> New Event
+          </Link>
         </Button>
       </div>
 

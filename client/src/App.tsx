@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import EventsPage from "@/pages/events";
+import NewEventPage from "@/pages/new-event";
 import MeetingsPage from "@/pages/meetings";
+import NewMeetingPage from "@/pages/new-meeting";
 import HandbookPage from "@/pages/handbook";
 import NotFound from "@/pages/not-found";
 
@@ -14,7 +16,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={EventsPage} />
+      <Route path="/events/new" component={NewEventPage} />
       <Route path="/meetings" component={MeetingsPage} />
+      <Route path="/meetings/new" component={NewMeetingPage} />
       <Route path="/handbook" component={HandbookPage} />
       <Route component={NotFound} />
     </Switch>

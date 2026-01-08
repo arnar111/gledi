@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -27,8 +28,10 @@ export default function MeetingsPage() {
           </h2>
           <p className="text-muted-foreground mt-1" data-testid="text-meetings-subtitle">Schedule and track your planning sessions</p>
         </div>
-        <Button className="gap-2" data-testid="button-schedule-meeting">
-          <Plus className="h-4 w-4" /> Schedule Meeting
+        <Button className="gap-2" asChild data-testid="button-schedule-meeting">
+          <Link href="/meetings/new">
+            <Plus className="h-4 w-4" /> Schedule Meeting
+          </Link>
         </Button>
       </div>
 
