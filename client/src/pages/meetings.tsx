@@ -44,74 +44,76 @@ export default function MeetingsPage() {
 
       <div className="space-y-4" data-testid="list-meetings">
         {meetings?.map((meeting: any) => (
-          <Card 
+          <Link 
             key={meeting.id} 
-            className="hover-elevate overflow-visible"
-            data-testid={`card-meeting-${meeting.id}`}
+            href={`/meetings/${meeting.id}`} 
+            className="block no-underline"
           >
-            <CardHeader className="pb-3">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 shrink-0" data-testid={`icon-meeting-${meeting.id}`}>
-                    <Video className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-bold" data-testid={`text-meeting-title-${meeting.id}`}>{meeting.title}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground" data-testid={`text-meeting-date-${meeting.id}`}>
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {new Date(meeting.date).toLocaleDateString(undefined, { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
+            <Card 
+              className="hover-elevate overflow-visible cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
+              data-testid={`card-meeting-${meeting.id}`}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 shrink-0">
+                      <Video className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold">{meeting.title}</CardTitle>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {new Date(meeting.date).toLocaleDateString(undefined, { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Badge 
-                    variant={meeting.status === 'scheduled' ? 'secondary' : 'default'}
-                    data-testid={`badge-meeting-status-${meeting.id}`}
-                  >
-                    {meeting.status}
-                  </Badge>
-                  {meeting.loopLink && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-2" 
-                      asChild
-                      data-testid={`button-loop-${meeting.id}`}
-                    >
-                      <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" /> 
-                        Open in Loop
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            
-            {meeting.minutes && (
-              <CardContent>
-                <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary" data-testid={`container-minutes-${meeting.id}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground" data-testid={`text-minutes-label-${meeting.id}`}>Meeting Notes</span>
+                  
+                  <div className="flex items-center gap-3">
+                    <Badge variant={meeting.status === 'scheduled' ? 'secondary' : 'default'}>
+                      {meeting.status}
+                    </Badge>
+                    {meeting.loopLink && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2" 
+                        asChild
+                        onClick={(e) => e.stopPropagation()} 
+                      >
+                        <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" /> 
+                          Open in Loop
+                        </a>
+                      </Button>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-minutes-content-${meeting.id}`}>
-                    {meeting.minutes}
-                  </p>
                 </div>
-              </CardContent>
-            )}
-          </Card>
+              </CardHeader>
+              
+              {meeting.minutes && (
+                <CardContent>
+                  <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Meeting Notes</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {meeting.minutes}
+                    </p>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </Link>
         ))}
       </div>
 
@@ -120,8 +122,8 @@ export default function MeetingsPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <Calendar className="h-8 w-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold" data-testid="text-empty-meetings-title">No meetings scheduled</h3>
-          <p className="text-muted-foreground mt-1" data-testid="text-empty-meetings-message">Schedule your first committee meeting</p>
+          <h3 className="text-lg font-semibold">No meetings scheduled</h3>
+          <p className="text-muted-foreground mt-1">Schedule your first committee meeting</p>
         </div>
       )}
     </div>
