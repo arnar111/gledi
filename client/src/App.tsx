@@ -11,6 +11,7 @@ import EventDetailPage from "@/pages/event-detail";
 import NewEventPage from "@/pages/new-event";
 import MeetingsPage from "@/pages/meetings";
 import NewMeetingPage from "@/pages/new-meeting";
+import MeetingDetailPage from "@/pages/meeting-detail"; // <--- ADDED THIS IMPORT
 import CalendarPage from "@/pages/calendar";
 import TemplatesPage from "@/pages/templates";
 import HandbookPage from "@/pages/handbook";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/events/:id" component={EventDetailPage} />
       <Route path="/meetings" component={MeetingsPage} />
       <Route path="/meetings/new" component={NewMeetingPage} />
+      <Route path="/meetings/:id" component={MeetingDetailPage} /> {/* <--- ADDED THIS ROUTE */}
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/templates" component={TemplatesPage} />
       <Route path="/handbook" component={HandbookPage} />
