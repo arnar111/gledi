@@ -3,18 +3,19 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { registerChatRoutes } from "./replit_integrations/chat";
-import { registerImageRoutes } from "./replit_integrations/image";
-import { openai } from "./replit_integrations/image/client";
-import { fetchLoopContent } from "./sharepoint";
+// Temporarily commented out for debugging
+// import { registerChatRoutes } from "./replit_integrations/chat";
+// import { registerImageRoutes } from "./replit_integrations/image";
+// import { openai } from "./replit_integrations/image/client";
+// import { fetchLoopContent } from "./sharepoint";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Register AI Integrations
-  registerChatRoutes(app);
-  registerImageRoutes(app);
+  // Register AI Integrations - temporarily disabled
+  // registerChatRoutes(app);
+  // registerImageRoutes(app);
 
   // Events
   app.get(api.events.list.path, async (_req, res) => {
@@ -53,20 +54,21 @@ export async function registerRoutes(
     if (!event) return res.status(404).json({ message: "Event not found" });
 
     const prompt = req.body.prompt || `A cool event poster for ${event.title}. ${event.description}`;
-    
+
     try {
+      // Temporarily disabled - requires openai integration
+      throw new Error("Poster generation temporarily unavailable");
+      /* 
       const response = await openai.images.generate({
         model: "gpt-image-1",
         prompt,
         n: 1,
         size: "1024x1024",
       });
-      
-      const posterUrl = response.data?.[0]?.url || "";
-      await storage.updateEvent(id, { posterUrl });
-      res.json({ posterUrl });
+      */
+
     } catch (err) {
-      res.status(500).json({ message: "Failed to generate poster" });
+      res.status(500).json({ message: "Poster generation temporarily unavailable" });
     }
   });
 
@@ -92,18 +94,9 @@ export async function registerRoutes(
     res.json(meeting);
   });
 
+  // Loop import temporarily disabled
   app.post('/api/loop/import', async (req, res) => {
-    try {
-      const { loopUrl } = req.body;
-      if (!loopUrl) {
-        return res.status(400).json({ message: 'Loop URL is required' });
-      }
-      const content = await fetchLoopContent(loopUrl);
-      res.json({ content });
-    } catch (err: any) {
-      console.error('Loop import error:', err);
-      res.status(500).json({ message: err.message || 'Failed to import from Loop' });
-    }
+    res.status(503).json({ message: 'Loop integration temporarily unavailable' });
   });
 
   // Tasks
@@ -163,22 +156,32 @@ export async function registerRoutes(
 
   app.post('/api/events/:eventId/sms', async (req, res) => {
     try {
+      console.log(`[SMS] Create request for event ${req.params.eventId}`);
       const eventId = parseInt(req.params.eventId);
+      console.log(`[SMS] Parsed eventId: ${eventId}`);
+
       const event = await storage.getEvent(eventId);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
-      
+
+      console.log(`[SMS] Payload:`, JSON.stringify(req.body));
       const input = api.smsNotifications.create.input.parse(req.body);
+      console.log(`[SMS] Parsed input, staffIds count: ${input.staffIds.length}`);
+
       const notifications = input.staffIds.map((staffId) => ({
         eventId,
         staffId,
         message: input.message,
         status: 'pending' as const,
       }));
+
       const created = await storage.createSmsNotifications(notifications);
+      console.log(`[SMS] Created ${created.length} notifications in DB`);
+
       res.status(201).json(created);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[SMS] Create Error:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
@@ -187,21 +190,83 @@ export async function registerRoutes(
   });
 
   app.post('/api/events/:eventId/sms/send', async (req, res) => {
-    // This will be implemented when Twilio is added
-    // For now, just mark pending notifications as "sent" (stub)
-    const eventId = parseInt(req.params.eventId);
-    const notifications = await storage.getSmsNotifications(eventId);
-    const pending = notifications.filter(n => n.status === 'pending');
-    
-    // Stub: mark as sent (Twilio integration will replace this)
-    for (const n of pending) {
-      await storage.updateSmsNotification(n.id, { 
-        status: 'sent', 
-        sentAt: new Date() 
+    try {
+      const eventId = parseInt(req.params.eventId);
+      console.log(`[SMS] Send request for event ${eventId}`);
+
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Get all pending SMS notifications for this event
+      const notifications = await storage.getSmsNotifications(eventId);
+      console.log(`[SMS] Found ${notifications.length} total notifications for event`);
+
+      const pending = notifications.filter(n => n.status === 'pending');
+      console.log(`[SMS] Found ${pending.length} pending notifications`);
+
+      if (pending.length === 0) {
+        return res.json({ sent: 0, failed: 0, message: "No pending notifications" });
+      }
+
+      // Get staff details for each pending notification
+      const staffList = await storage.getStaff();
+      const staffMap = new Map(staffList.map(s => [s.id, s]));
+
+      let sent = 0;
+      let failed = 0;
+
+      // Send SMS to each recipient
+      for (const notification of pending) {
+        const staff = staffMap.get(notification.staffId);
+        if (!staff || !staff.phone) {
+          // Mark as failed if staff not found or no phone number
+          await storage.updateSmsNotification(notification.id, {
+            status: 'failed',
+            sentAt: new Date(),
+          });
+          failed++;
+          continue;
+        }
+
+        // Import Twilio service dynamically
+        const { sendSms } = await import('./twilio');
+
+        // Send SMS via Twilio
+        const result = await sendSms({
+          to: staff.phone,
+          message: notification.message,
+        });
+
+        if (result.success) {
+          await storage.updateSmsNotification(notification.id, {
+            status: 'sent',
+            sentAt: new Date(),
+          });
+          sent++;
+        } else {
+          await storage.updateSmsNotification(notification.id, {
+            status: 'failed',
+            sentAt: new Date(),
+          });
+          failed++;
+          console.error(`Failed to send SMS to ${staff.phone}:`, result.error);
+        }
+      }
+
+      res.json({
+        sent,
+        failed,
+        message: `Sent ${sent} message(s), ${failed} failed`
+      });
+    } catch (error: any) {
+      console.error('SMS Send Error:', error);
+      res.status(500).json({
+        message: "Failed to send SMS notifications",
+        error: error.message
       });
     }
-    
-    res.json({ sent: pending.length, failed: 0 });
   });
 
   // Expenses
@@ -382,7 +447,7 @@ async function seedDatabase() {
       { name: "Sindri Hannesson", phone: "+3546963593" },
       { name: "Unnur Sesselía Ólafsdóttir", phone: "+3546989815" },
     ];
-    
+
     for (const s of staffList) {
       await storage.createStaff({ name: s.name, phone: s.phone, isActive: true });
     }
