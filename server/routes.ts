@@ -192,21 +192,28 @@ export async function registerRoutes(
   app.post('/api/events/:eventId/sms/send', async (req, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
-      console.log(`[SMS] Send request for event ${eventId}`);
+      console.log(`[SMS SEND] ========================================`);
+      console.log(`[SMS SEND] Send request for event ID: ${eventId}`);
 
       const event = await storage.getEvent(eventId);
       if (!event) {
+        console.log(`[SMS SEND] Event not found for ID: ${eventId}`);
         return res.status(404).json({ message: "Event not found" });
       }
+      console.log(`[SMS SEND] Found event: "${event.title}"`);
 
       // Get all pending SMS notifications for this event
       const notifications = await storage.getSmsNotifications(eventId);
-      console.log(`[SMS] Found ${notifications.length} total notifications for event`);
+      console.log(`[SMS SEND] Found ${notifications.length} total notifications for event`);
+      if (notifications.length > 0) {
+        console.log(`[SMS SEND] Notification statuses:`, notifications.map(n => ({ id: n.id, status: n.status, staffId: n.staffId })));
+      }
 
       const pending = notifications.filter(n => n.status === 'pending');
-      console.log(`[SMS] Found ${pending.length} pending notifications`);
+      console.log(`[SMS SEND] Found ${pending.length} pending notifications`);
 
       if (pending.length === 0) {
+        console.log(`[SMS SEND] WARNING: No pending notifications found! This means the /sms create endpoint may have failed.`);
         return res.json({ sent: 0, failed: 0, message: "No pending notifications" });
       }
 

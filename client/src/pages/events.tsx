@@ -51,9 +51,19 @@ export default function EventsPage() {
 
   const smsMutation = useMutation({
     mutationFn: async ({ eventId, message, staffIds }: { eventId: number; message: string; staffIds: number[] }) => {
-      await apiRequest("POST", `/api/events/${eventId}/sms`, { message, staffIds });
-      const res = await apiRequest("POST", `/api/events/${eventId}/sms/send`);
-      return res.json();
+      console.log('[SMS Client] Starting SMS flow for event:', eventId, 'with', staffIds.length, 'staff');
+
+      // Step 1: Create SMS notification records
+      const createRes = await apiRequest("POST", `/api/events/${eventId}/sms`, { message, staffIds });
+      const created = await createRes.json();
+      console.log('[SMS Client] Created notifications:', created.length, created);
+
+      // Step 2: Send the pending notifications  
+      const sendRes = await apiRequest("POST", `/api/events/${eventId}/sms/send`);
+      const result = await sendRes.json();
+      console.log('[SMS Client] Send result:', result);
+
+      return result;
     },
     onSuccess: (data) => {
       toast({ title: `SMS notifications queued! ${data.sent} messages will be sent.` });
@@ -127,16 +137,16 @@ export default function EventsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-events">
         {events?.map((event: any) => (
-          <Card 
-            key={event.id} 
+          <Card
+            key={event.id}
             className="hover-elevate group overflow-visible"
             data-testid={`card-event-${event.id}`}
           >
             <div className="relative overflow-hidden rounded-t-lg">
               {event.posterUrl ? (
-                <img 
-                  src={event.posterUrl} 
-                  alt={event.title} 
+                <img
+                  src={event.posterUrl}
+                  alt={event.title}
                   className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
                   data-testid={`img-poster-${event.id}`}
                 />
@@ -148,8 +158,8 @@ export default function EventsPage() {
                   </div>
                 </div>
               )}
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 size="icon"
                 className="absolute bottom-3 right-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => posterMutation.mutate(event.id)}
@@ -163,7 +173,7 @@ export default function EventsPage() {
                 )}
               </Button>
             </div>
-            
+
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
                 <Link href={`/events/${event.id}`}>
@@ -171,7 +181,7 @@ export default function EventsPage() {
                     {event.title}
                   </CardTitle>
                 </Link>
-                <Badge 
+                <Badge
                   variant={event.status === 'planning' ? 'secondary' : 'default'}
                   className="shrink-0"
                   data-testid={`badge-status-${event.id}`}
@@ -180,12 +190,12 @@ export default function EventsPage() {
                 </Badge>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-event-description-${event.id}`}>
                 {event.description}
               </p>
-              
+
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5" data-testid={`text-event-date-${event.id}`}>
                   <Calendar className="h-4 w-4 text-primary" />
