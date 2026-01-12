@@ -10,3 +10,4 @@ replit.nix
 *.log
 *.txt
 *.ts_backup
+firebase-service-account.json
