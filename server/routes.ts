@@ -53,22 +53,22 @@ export async function registerRoutes(
     const event = await storage.getEvent(id);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const prompt = req.body.prompt || `A cool event poster for ${event.title}. ${event.description}`;
-
     try {
-      // Temporarily disabled - requires openai integration
-      throw new Error("Poster generation temporarily unavailable");
-      /* 
-      const response = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt,
-        n: 1,
-        size: "1024x1024",
-      });
-      */
+      const { generateEventPoster } = await import("./gemini");
+      const posterUrl = await generateEventPoster(
+        event.title,
+        event.description || "",
+        new Date(event.date),
+        event.location
+      );
 
-    } catch (err) {
-      res.status(500).json({ message: "Poster generation temporarily unavailable" });
+      // Update event with poster URL
+      await storage.updateEvent(id, { posterUrl });
+
+      res.json({ posterUrl });
+    } catch (err: any) {
+      console.error("[Poster] Generation error:", err.message);
+      res.status(500).json({ message: err.message || "Failed to generate poster" });
     }
   });
 

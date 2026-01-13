@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -115,7 +116,7 @@ export default function StaffPage() {
 
   const filteredStaff = staffList.filter(
     (s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           s.phone.includes(searchQuery)
+      s.phone.includes(searchQuery)
   );
 
   const activeCount = staffList.filter((s) => s.isActive).length;
@@ -288,6 +289,9 @@ export default function StaffPage() {
             <DialogTitle data-testid="text-dialog-title">
               {editingStaff ? "Edit Staff Member" : "Add Staff Member"}
             </DialogTitle>
+            <DialogDescription>
+              {editingStaff ? "Update the staff member's details below." : "Enter the new staff member's name and phone number."}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

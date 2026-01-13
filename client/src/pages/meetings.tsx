@@ -44,12 +44,12 @@ export default function MeetingsPage() {
 
       <div className="space-y-4" data-testid="list-meetings">
         {meetings?.map((meeting: any) => (
-          <Link 
-            key={meeting.id} 
-            href={`/meetings/${meeting.id}`} 
+          <Link
+            key={meeting.id}
+            href={`/meetings/${meeting.id}`}
             className="block no-underline"
           >
-            <Card 
+            <Card
               className="hover-elevate overflow-visible cursor-pointer transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
               data-testid={`card-meeting-${meeting.id}`}
             >
@@ -64,10 +64,10 @@ export default function MeetingsPage() {
                       <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          {new Date(meeting.date).toLocaleDateString(undefined, { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
+                          {new Date(meeting.date).toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
                             day: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
@@ -76,29 +76,30 @@ export default function MeetingsPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <Badge variant={meeting.status === 'scheduled' ? 'secondary' : 'default'}>
                       {meeting.status}
                     </Badge>
                     {meeting.loopLink && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2" 
-                        asChild
-                        onClick={(e) => e.stopPropagation()} 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.open(meeting.loopLink, '_blank', 'noopener,noreferrer');
+                        }}
                       >
-                        <a href={meeting.loopLink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" /> 
-                          Open in Loop
-                        </a>
+                        <ExternalLink className="h-4 w-4" />
+                        Open in Loop
                       </Button>
                     )}
                   </div>
                 </div>
               </CardHeader>
-              
+
               {meeting.minutes && (
                 <CardContent>
                   <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary">

@@ -77,7 +77,7 @@ export default function EventsPage() {
   const openSmsDialog = (event: Event) => {
     setSelectedEvent(event);
     setSelectedStaffIds(activeStaff.map((s) => s.id));
-    setSmsMessage(`You're invited to ${event.title} on ${new Date(event.date).toLocaleDateString()}! ${event.location ? `Location: ${event.location}` : ""}`);
+    setSmsMessage(event.description || `You're invited to ${event.title} on ${new Date(event.date).toLocaleDateString()}!`);
     setSmsDialogOpen(true);
   };
 

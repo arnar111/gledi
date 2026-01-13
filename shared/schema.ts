@@ -161,7 +161,9 @@ export const insertExpenseSchema = createInsertSchema(expenses, {
 }).omit({ id: true, createdAt: true });
 
 export const insertEventTemplateSchema = createInsertSchema(eventTemplates, {
-  recurringType: z.enum(["weekly", "biweekly", "monthly"]).optional(),
+  recurringType: z.enum(["weekly", "biweekly", "monthly"]).nullable().optional(),
+  description: z.string().default(""),
+  budget: z.number().default(0),
 }).omit({ id: true, createdAt: true });
 
 // --- API TYPES ---
