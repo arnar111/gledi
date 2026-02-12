@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { api } from "@shared/routes";
+import type { Meeting } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, ExternalLink, Calendar, FileText, Video, History } from "lucide-react";
 
 export default function MeetingsPage() {
-  const { data: meetings, isLoading } = useQuery({
+  const { data: meetings, isLoading } = useQuery<Meeting[]>({
     queryKey: [api.meetings.list.path],
   });
 
