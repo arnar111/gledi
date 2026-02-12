@@ -16,6 +16,7 @@ import CalendarPage from "@/pages/calendar";
 import TemplatesPage from "@/pages/templates";
 import HandbookPage from "@/pages/handbook";
 import StaffPage from "@/pages/staff";
+import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/templates" component={TemplatesPage} />
       <Route path="/handbook" component={HandbookPage} />
       <Route path="/staff" component={StaffPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   )
