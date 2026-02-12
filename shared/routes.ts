@@ -43,7 +43,7 @@ export const api = {
         description: z.string().optional().nullable(),
         date: z.string(),
         location: z.string().optional().nullable(),
-        status: z.enum(['planning', 'confirmed', 'completed', 'cancelled']).optional(),
+        status: z.enum(['planning', 'advertised', 'completed']).optional(),
         budget: z.number().optional().nullable(),
         maxAttendees: z.number().optional().nullable(),
         posterUrl: z.string().optional().nullable(),
@@ -81,6 +81,14 @@ export const api = {
         200: z.array(z.custom<typeof meetings.$inferSelect>()),
       },
     },
+    get: {
+      method: 'GET' as const,
+      path: '/api/meetings/:id',
+      responses: {
+        200: z.custom<typeof meetings.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/meetings',
@@ -89,7 +97,7 @@ export const api = {
         date: z.string(),
         loopLink: z.string().optional().nullable(),
         minutes: z.string().optional().nullable(),
-        status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+        status: z.enum(['scheduled', 'completed']).optional(),
         chairpersonId: z.number().optional().nullable(),
         secretaryId: z.number().optional().nullable(),
       }),
@@ -103,6 +111,13 @@ export const api = {
       input: insertMeetingSchema.partial(),
       responses: {
         200: z.custom<typeof meetings.$inferSelect>(),
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/meetings/:id',
+      responses: {
+        200: z.object({ success: z.boolean() }),
       },
     },
   },

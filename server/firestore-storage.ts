@@ -154,6 +154,17 @@ export class FirestoreStorage {
         });
     }
 
+    async getMeeting(id: number): Promise<Meeting | undefined> {
+        const doc = await db.collection(COLLECTIONS.meetings).doc(String(id)).get();
+        if (!doc.exists) return undefined;
+        const data = doc.data()!;
+        return {
+            ...data,
+            date: toDate(data.date),
+            createdAt: toDate(data.createdAt),
+        } as Meeting;
+    }
+
     async createMeeting(meeting: CreateMeetingRequest): Promise<Meeting> {
         const id = await getNextId(COLLECTIONS.meetings);
         const now = Timestamp.now();
@@ -180,6 +191,10 @@ export class FirestoreStorage {
             date: toDate(data.date),
             createdAt: toDate(data.createdAt),
         } as Meeting;
+    }
+
+    async deleteMeeting(id: number): Promise<void> {
+        await db.collection(COLLECTIONS.meetings).doc(String(id)).delete();
     }
 
     // ===== Tasks =====

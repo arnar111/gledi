@@ -24,8 +24,10 @@ export interface IStorage {
 
   // Meetings
   getMeetings(): Promise<Meeting[]>;
+  getMeeting(id: number): Promise<Meeting | undefined>;
   createMeeting(meeting: CreateMeetingRequest): Promise<Meeting>;
   updateMeeting(id: number, updates: UpdateMeetingRequest): Promise<Meeting>;
+  deleteMeeting(id: number): Promise<void>;
 
   // Tasks
   getTasks(): Promise<Task[]>;

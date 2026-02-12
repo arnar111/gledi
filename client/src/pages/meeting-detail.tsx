@@ -1,6 +1,6 @@
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { insertMeetingSchema } from "@shared/schema";
+import { insertMeetingSchema, type Meeting } from "@shared/schema";
 
 export default function MeetingDetailPage() {
   const [, params] = useRoute("/meetings/:id");
@@ -23,8 +23,8 @@ export default function MeetingDetailPage() {
   const id = params?.id;
 
   // 1. Fetch the meeting data
-  const { data: meeting, isLoading } = useQuery({
-    queryKey: [api.meetings.get.path.replace(":id", id!)],
+  const { data: meeting, isLoading } = useQuery<Meeting>({
+    queryKey: [buildUrl(api.meetings.get.path, { id: id! })],
     enabled: !!id,
   });
 
@@ -60,7 +60,7 @@ export default function MeetingDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.meetings.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.meetings.get.path.replace(":id", id!)] });
+      queryClient.invalidateQueries({ queryKey: [buildUrl(api.meetings.get.path, { id: id! })] });
       toast({ title: "Success", description: "Meeting updated successfully" });
     },
     onError: () => {
